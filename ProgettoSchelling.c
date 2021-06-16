@@ -263,15 +263,6 @@ void main(int argc, char *argv[]) {
         printf("\n\n Time in s = %f\n", end - start);
     }
     MPI_Finalize();
-
-    free(sendcounts);
-    free(displs);
-    free(irecv);
-    free(emptyDispls);
-    free(emptySendcounts);
-    free(temp);
-    free(index);
-    free(displs_modifier);
 }
 
 void printm(char *matrix, int rank, int rows, int N, int M) {
