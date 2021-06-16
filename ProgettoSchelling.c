@@ -5,36 +5,40 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#define N 2500
-#define M 2500
+//#define N 2500
+//#define M 2500
 #define T 30
 #define BLUE(string) "\033[1;34m" string "\x1b[0m"
 #define RED(string) "\033[1;31m" string "\x1b[0m"
 
-void printm(char *matrix, int rank, int rows);
-int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsatisfied, char *temp, int liberi, int world_size);
-void calculateInitial(int world_size, int *rowProcess, int *sendcounts, int divisione, int resto, int *displs, int *displs_modifier);
+void printm(char *matrix, int rank, int rows, int N, int M);
+int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsatisfied, char *temp, int liberi, int world_size, int N, int M);
+void calculateInitial(int world_size, int *rowProcess, int *sendcounts, int divisione, int resto, int *displs, int *displs_modifier, int N, int M);
 void calculateEmptyPlaces(int world_size, int o, int *emptySendcounts, int *emptyDispls);
-void populateTemp(int rank, int rows, char *received_matrix, char *temp, int world_size);
-int populateInitialMatrix(char *data, int *emptyPlaces);
-int getEmptyPlaces(char *irecv, int *emptyPlaces);
+void populateTemp(int rank, int rows, char *received_matrix, char *temp, int world_size, int M);
+int populateInitialMatrix(char *data, int *emptyPlaces, int N, int M);
+int getEmptyPlaces(char *irecv, int *emptyPlaces, int N, int M);
 
 void main(int argc, char *argv[]) {
-    int rank, world_size;                             // for storing this process' rank, and the number of processes
-    int root = 0;                                     // rank of master or root process
-    double start, end;                                // start and end time of program's execution
-    char *temp = malloc(sizeof(char) * (N * M));      //temp matrix to store the received matrix for each of the processor
-    char *irecv = malloc(sizeof(char) * (N * M));     //matrix used to store the result of gather and then to scatter in the iteraztions > 1
-    int *rowProcess = malloc(sizeof(int) * (M * N));  //number of row for each process
-    int *recvcount = malloc(sizeof(int) * (N * M));   //recv counts for gather
-    char *data = malloc(sizeof(char) * (N * M));      // the matrix to be distributed
-    int steps = 10;                                   //number of iterations
+    int rank, world_size;  // for storing this process' rank, and the number of processes
+    int root = 0;          // rank of master or root process
+    double start, end;     // start and end time of program's execution
+    int M, N;
 
     MPI_Init(&argc, &argv);
+    N = atoi(argv[1]);  //Numero righe matrice
+    M = atoi(argv[2]);  //Numero colonne matrice
+
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Barrier(MPI_COMM_WORLD);
 
+    char *temp = malloc(sizeof(char) * (N * M));         //temp matrix to store the received matrix for each of the processor
+    char *irecv = malloc(sizeof(char) * (N * M));        //matrix used to store the result of gather and then to scatter in the iteraztions > 1
+    int *rowProcess = malloc(sizeof(int) * (M * N));     //number of row for each process
+    int *recvcount = malloc(sizeof(int) * (N * M));      //recv counts for gather
+    char *data = malloc(sizeof(char) * (N * M));         // the matrix to be distributed
+    int steps = 10;                                      //number of iterations
     int *sendcounts = malloc(sizeof(int) * world_size);  // array describing how many elements to send to each process
     int *displs = malloc(sizeof(int) * world_size);      // array describing the displacements where each segment begins
     int *index = malloc(sizeof(int) * world_size);
@@ -69,7 +73,7 @@ void main(int argc, char *argv[]) {
     MPI_Type_commit(&sendAgent);
 
     // calculate send counts and displacements
-    calculateInitial(world_size, rowProcess, sendcounts, divisione, resto, displs, displs_modifier);
+    calculateInitial(world_size, rowProcess, sendcounts, divisione, resto, displs, displs_modifier, N, M);
 
     int current_step = 0;
     while (current_step < steps) {
@@ -81,10 +85,10 @@ void main(int argc, char *argv[]) {
             srand(10);
             if (current_step == 0) {
                 //printf("CREO TABELLA INIZIALE\n");
-                o = populateInitialMatrix(data, emptyPlaces);
+                o = populateInitialMatrix(data, emptyPlaces, N, M);
             } else {
                 // printf("USO TABELLA IRECV\n");
-                o = getEmptyPlaces(irecv, emptyPlaces);
+                o = getEmptyPlaces(irecv, emptyPlaces, N, M);
                 //printm(irecv, 0, N);
             }
         }
@@ -126,7 +130,7 @@ void main(int argc, char *argv[]) {
         int liberi = receive_size;
         int prova = receive_size;
 
-        populateTemp(rank, rows, received_matrix, temp, world_size);
+        populateTemp(rank, rows, received_matrix, temp, world_size, M);
 
         for (int i = 0; i < world_size; i++) {
             index[i] = displs[i] + M;
@@ -137,7 +141,7 @@ void main(int argc, char *argv[]) {
 
         //check the treshold for each element of the submatrix received and if the process has k empty places assigned then the first k agent
         //that wants to move are stored in unassigned and the position in the submatrix received becemes empty
-        int uns = getUnsatisfiedAgents(rank, rows, received_matrix, unsatisfied, temp, liberi, world_size);
+        int uns = getUnsatisfiedAgents(rank, rows, received_matrix, unsatisfied, temp, liberi, world_size, N, M);
 
         int daSpostare = 0;
         movingAgent *agent = malloc(sizeof(movingAgent) * uns);
@@ -256,7 +260,7 @@ void main(int argc, char *argv[]) {
     end = MPI_Wtime();
 
     if (rank == root) {
-        printf("\n\n Time in ms = %f\n", end - start);
+        printf("\n\n Time in s = %f\n", end - start);
     }
     MPI_Finalize();
 
@@ -270,7 +274,7 @@ void main(int argc, char *argv[]) {
     free(displs_modifier);
 }
 
-void printm(char *matrix, int rank, int rows) {
+void printm(char *matrix, int rank, int rows, int N, int M) {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < M; j++) {
             if (j == 0) printf("| ");
@@ -295,7 +299,7 @@ void printm(char *matrix, int rank, int rows) {
     printf("\n");*/
 }
 
-int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsatisfied, char *temp, int liberi, int world_size) {
+int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsatisfied, char *temp, int liberi, int world_size, int N, int M) {
     int uns = 0;
     if (rank == 0) {
         for (int i = 0; i < rows - 1; i++) {
@@ -495,7 +499,7 @@ int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsati
     }
 }
 
-void calculateInitial(int world_size, int *rowProcess, int *sendcounts, int divisione, int resto, int *displs, int *displs_modifier) {
+void calculateInitial(int world_size, int *rowProcess, int *sendcounts, int divisione, int resto, int *displs, int *displs_modifier, int N, int M) {
     int sum = 0;  // Sum of counts. Used to calculate displacements
     for (int i = 0; i < world_size; i++) {
         rowProcess[i] = 0;
@@ -570,7 +574,7 @@ void calculateEmptyPlaces(int world_size, int o, int *emptySendcounts, int *empt
         emptySum += emptySendcounts[i];
     }
 }
-void populateTemp(int rank, int rows, char *received_matrix, char *temp, int world_size) {
+void populateTemp(int rank, int rows, char *received_matrix, char *temp, int world_size, int M) {
     if (rank == 0) {
         for (int i = 0, g = 0; i < rows - 1; i++, g++) {
             for (int j = 0; j < M; j++) {
@@ -600,7 +604,7 @@ void populateTemp(int rank, int rows, char *received_matrix, char *temp, int wor
     }
 }
 
-int populateInitialMatrix(char *data, int *emptyPlaces) {
+int populateInitialMatrix(char *data, int *emptyPlaces, int N, int M) {
     int o = 0;
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < M; j++) {
@@ -619,7 +623,7 @@ int populateInitialMatrix(char *data, int *emptyPlaces) {
     return o;
 }
 
-int getEmptyPlaces(char *irecv, int *emptyPlaces) {
+int getEmptyPlaces(char *irecv, int *emptyPlaces, int N, int M) {
     int o = 0;
     for (int i = 0; i < N; i++)
         for (int j = 0; j < M; j++)
