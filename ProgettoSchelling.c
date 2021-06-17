@@ -23,7 +23,8 @@ void main(int argc, char *argv[]) {
     int rank, world_size;  // for storing this process' rank, and the number of processes
     int root = 0;          // rank of master or root process
     double start, end;     // start and end time of program's execution
-    int M, N;
+    int M = 0;
+    int N = 0;
 
     MPI_Init(&argc, &argv);
     N = atoi(argv[1]);  //Numero righe matrice
@@ -33,11 +34,11 @@ void main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Barrier(MPI_COMM_WORLD);
 
-    char *temp = malloc(sizeof(char) * (N * M));         //temp matrix to store the received matrix for each of the processor
-    char *irecv = malloc(sizeof(char) * (N * M));        //matrix used to store the result of gather and then to scatter in the iteraztions > 1
-    int *rowProcess = malloc(sizeof(int) * (M * N));     //number of row for each process
-    int *recvcount = malloc(sizeof(int) * (N * M));      //recv counts for gather
-    char *data = malloc(sizeof(char) * (N * M));         // the matrix to be distributed
+    char *temp = malloc(sizeof(char) * N * M);           //temp matrix to store the received matrix for each of the processor
+    char *irecv = malloc(sizeof(char) * N * M);          //matrix used to store the result of gather and then to scatter in the iteraztions > 1
+    int *rowProcess = malloc(sizeof(int) * M * N);       //number of row for each process
+    int *recvcount = malloc(sizeof(int) * N * M);        //recv counts for gather
+    char *data = malloc(sizeof(char) * N * M);           // the matrix to be distributed
     int steps = 10;                                      //number of iterations
     int *sendcounts = malloc(sizeof(int) * world_size);  // array describing how many elements to send to each process
     int *displs = malloc(sizeof(int) * world_size);      // array describing the displacements where each segment begins
@@ -49,13 +50,13 @@ void main(int argc, char *argv[]) {
     int divisione = N / world_size;
     int resto = N % world_size;
     resto = resto * M;
-    char *received_matrix = malloc(sizeof(char) * (N * M));  // buffer where the received data should be stored
+    char *received_matrix = malloc(sizeof(char) * N * M);  // buffer where the received data should be stored
 
-    //definition of the struct wich defines the agent to move
+    //definition of the struct that defines the agent to move
     typedef struct {
-        int newPosition;
-        int processo;
-        char tipo;
+        int newPosition;  //new position of the agent
+        int processo;     //process owner of the position
+        char tipo;        //type of agent
     } movingAgent;
 
     MPI_Datatype sendAgent, oldtypes[2];
@@ -81,7 +82,7 @@ void main(int argc, char *argv[]) {
         //find out if the current process is the master
         int o = 0;
         if (0 == rank) {
-            //populate the matrix with random values
+            //populate the matrix with random values SEED
             srand(10);
             if (current_step == 0) {
                 //printf("CREO TABELLA INIZIALE\n");
@@ -96,9 +97,10 @@ void main(int argc, char *argv[]) {
         MPI_Bcast(&o, 1, MPI_INT, 0, MPI_COMM_WORLD);
         // calculate send counts and displacements for the empty places
         calculateEmptyPlaces(world_size, o, emptySendcounts, emptyDispls);
-        int *received_array = malloc(sizeof(int) * (N * M));  //array received wich contains the locatioon of the empty places assigned to the processor
+        int *received_array = malloc(sizeof(int) * N * M);  //array received wich contains the locatioon of the empty places assigned to the processor
 
-        srand(time(NULL));
+        //SEED SHUFFLE
+        //srand(time(NULL));
         for (int i = 0; i < o; i++) {
             size_t j = i + rand() / (RAND_MAX / (o - i) + 1);
             int t = emptyPlaces[j];
@@ -126,7 +128,7 @@ void main(int argc, char *argv[]) {
         //printm(received_matrix, rank, rows);
 
         //calculate the soddisfaction
-        char *unsatisfied = malloc(sizeof(char) * (N * M));  //array containing the agent to move
+        char *unsatisfied = malloc(sizeof(char) * N * M);  //array containing the agent to move
         int liberi = receive_size;
         int prova = receive_size;
 
@@ -238,7 +240,7 @@ void main(int argc, char *argv[]) {
             if (rank == root) {
                 if (current_step == steps - 1) {
                     printf(" non ho risolto\n");
-                    // printm(irecv, 0, N);
+                    //printm(irecv, 0, N, N, M);
                 }
             }
             current_step++;
@@ -252,7 +254,7 @@ void main(int argc, char *argv[]) {
 
             if (rank == root) {
                 printf("ho risolto\n");
-                //printm(irecv, 0, N);
+                //printm(irecv, 0, N, N, M); STAMPA INIZIALE
             }
         }
     }
@@ -294,61 +296,61 @@ int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsati
     int uns = 0;
     if (rank == 0) {
         for (int i = 0; i < rows - 1; i++) {
-            int r = 0;
+            int simili = 0;
             int vicini = 0;
             for (int j = 0; j < M; j++) {
                 if (received_matrix[(i * M) + j] != ' ') {
                     if (i > 0) {  // TODO SE HO UNA RIGA SOPRA
                         vicini += 2;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + j]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + j]) r++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + j]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + j]) simili++;
                         //controllo se ci sono elementi a sinistra
                         if (j == 0) {  //CI SONO ELEMENTI SOLO A DESTRA
                             vicini += 3;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         } else if (j == M - 1) {  //CI SONO ELEMENTI SOLO A SINISTRA
                             vicini += 3;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         } else {
                             vicini += 6;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         }
                     } else {  //TODO SE NON E' PRESENTE UNA RIGA SUPERIORE
                         vicini += 1;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) r++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) simili++;
                         //controllo se ci sono elementi a sinistra
                         if (j == 0) {  //CI SONO ELEMENTI SOLO A DESTRA
                             vicini += 2;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         } else if (j == M - 1) {  //CI SONO ELEMENTI SOLO A SINISTRA
                             vicini += 2;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
                         } else {
                             vicini += 4;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
 
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         }
                     }
                 } else
-                    r = -1;
+                    simili = -1;
 
                 float soddisfazione;
                 if (vicini > 0)
-                    soddisfazione = (100 / vicini) * r;
+                    soddisfazione = (100 / vicini) * simili;
                 else
                     soddisfazione = 100;
 
@@ -361,7 +363,7 @@ int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsati
                     }
                 }
 
-                r = 0;
+                simili = 0;
                 vicini = 0;
             }
         }
@@ -369,57 +371,57 @@ int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsati
         //printm(temp, rank, 1);
     } else if (rank == world_size - 1) {
         for (int i = 1; i < rows; i++) {
-            int r = 0;
+            int simili = 0;
             int vicini = 0;
             for (int j = 0; j < M; j++) {
                 if (received_matrix[(i * M) + j] != ' ') {
                     if (i != rows - 1) {  //TODO se  ho una riga inferiore
                         vicini += 2;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + j]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) r++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + j]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) simili++;
                         if (j == 0) {  //CI SONO ELEMENTI SOLO A DESTRA
                             vicini += 3;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         } else if (j == M - 1) {  //CI SONO ELEMENTI SOLO A SINISTRA
                             vicini += 3;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
                         } else {
                             vicini += 3;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         }
                     } else {
                         vicini += 1;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) r++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) simili++;
                         if (j == 0) {  //CI SONO ELEMENTI SOLO A DESTRA
                             vicini += 2;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         } else if (j == M - 1) {  //CI SONO ELEMENTI SOLO A SINISTRA
                             vicini += 2;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
                         } else {
                             vicini += 4;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                            if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                         }
                     }
                 } else
-                    r = -1;
+                    simili = -1;
                 float soddisfazione;
                 if (vicini > 0)
-                    soddisfazione = (100 / vicini) * r;
+                    soddisfazione = (100 / vicini) * simili;
                 else
                     soddisfazione = 100;
 
@@ -431,7 +433,7 @@ int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsati
                         liberi--;
                     }
                 }
-                r = 0;
+                simili = 0;
                 vicini = 0;
             }
         }
@@ -439,37 +441,37 @@ int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsati
         return uns;
     } else {
         for (int i = 1; i < rows - 1; i++) {
-            int r = 0;
+            int simili = 0;
             int vicini = 0;
             for (int j = 0; j < M; j++) {
                 if (received_matrix[(i * M) + j] != ' ') {
                     vicini += 2;
-                    if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) r++;
-                    if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + j]) r++;
+                    if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + j]) simili++;
+                    if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + j]) simili++;
                     if (j == 0) {  //CI SONO ELEMENTI SOLO A DESTRA
                         vicini += 3;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                     } else if (j == M - 1) {  //CI SONO ELEMENTI SOLO A SINISTRA
                         vicini += 3;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
                     } else {
                         vicini += 6;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) r++;
-                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) r++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j - 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j - 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j - 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i - 1) * M) + (j + 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[((i + 1) * M) + (j + 1)]) simili++;
+                        if (received_matrix[(i * M) + j] == received_matrix[(i * M) + (j + 1)]) simili++;
                     }
                 } else
-                    r = -1;
+                    simili = -1;
                 float soddisfazione;
                 if (vicini > 0)
-                    soddisfazione = (100 / vicini) * r;
+                    soddisfazione = (100 / vicini) * simili;
                 else
                     soddisfazione = 100;
 
@@ -482,7 +484,7 @@ int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsati
                     }
                 }
                 vicini = 0;
-                r = 0;
+                simili = 0;
             }
         }
         // printm(temp, rank, 1);
@@ -579,7 +581,7 @@ void populateTemp(int rank, int rows, char *received_matrix, char *temp, int wor
         for (int i = 0, g = 1; g < rows; i++, g++) {
             for (int j = 0; j < M; j++) {
                 temp[(i * M) + j] = received_matrix[(g * M) + j];
-                // printf("%c ", temp[i][j]);
+                // printf("%c ", temp[i][j]); STAMPA FINALE
             }
             //printf("\n");
         }
@@ -587,7 +589,7 @@ void populateTemp(int rank, int rows, char *received_matrix, char *temp, int wor
         for (int i = 0, g = 1; g < rows - 1; i++, g++) {
             for (int j = 0; j < M; j++) {
                 temp[(i * M) + j] = received_matrix[(g * M) + j];
-                //printf("%c ", temp[i][j]);
+                //printf("%c ", temp[i][j]); STAMPA FINALE
             }
             //  printf("\n");
         }
@@ -599,18 +601,19 @@ int populateInitialMatrix(char *data, int *emptyPlaces, int N, int M) {
     int o = 0;
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < M; j++) {
-            int r = rand() % 3;
-            if (r == 0)
+            int simili = rand() % 3;
+            if (simili == 0)
                 data[(i * M) + j] = 'R';
-            else if (r == 1)
+            else if (simili == 1)
                 data[(i * M) + j] = 'B';
-            else if (r == 2) {
+            else if (simili == 2) {
                 data[(i * M) + j] = ' ';
                 emptyPlaces[o] = (i * M) + j;
                 o++;
             }
         }
     }
+    //printm(data, 0, N, N, M);
     return o;
 }
 
