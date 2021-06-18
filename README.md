@@ -58,7 +58,14 @@ Matrice ricevuta dal Processo 3:
 
 Si arriva ad un punto quindi in cui **ogni processo ha la sua sottomatrice utilizzabile senza altre informazioni necessarie per il calcolo della soddisfazione** e un array contente la posizione dei k posti liberi che può usare per spostare gli agenti.
 
-Una volta che ogni processo ha la sua sottomatrice si esegue il calcolo della soddisfazione per gli agenti interessati dal processo (evidenziati in rosso) e si inseriscono in un array (se si hanno ancora posti liberi usabili, quindi se k>0). Le posizioni di questi agenti vengono sovrascritte con Empty poiche questi agenti dovranno spostarsi e lasceranno uno spazio vuoto al loro posto.
+Una volta che ogni processo ha la sua sottomatrice si esegue il calcolo della soddisfazione per gli agenti interessati dal processo (evidenziati in rosso) e si inseriscono in un array (se si hanno ancora posti liberi usabili, quindi se k>0). Le posizioni di questi agenti vengono sovrascritte con Empty poiche questi agenti dovranno spostarsi e lasceranno uno spazio vuoto al loro posto. La seguente funzione esegue quanto descritto sopra, è molto complessa poichè va tenuto conto di vari casi per il calcolo della soddisfazione; in particolare i 3 casi in cui si sta analizzando:
+<ul>
+<li>il primo processo e quindi non si hanno righe superiori per quanto concerne la prima riga
+<li>L'ultimo processo e quindi non si hanno righe inferiori all'uultima
+<li>I processi intermedi.
+</ul>
+
+Oltre questi casi bisonga di tenere conto della presenza o meno di elementi precedenti o successivi per eseguire un corretto calcolo della soffisfazione.
 ```c
 int getUnsatisfiedAgents(int rank, int rows, char *received_matrix, char *unsatisfied, char *temp, int liberi, int world_size, int N, int M) {
     int uns = 0;
@@ -292,7 +299,7 @@ Funzione che verifica la presenza di agenti insoddisfatti:
             if (received[l] > 0) insoddisfatti = true;
         }
 ```
-Funzione per trovare il processo proprietario della posizione libera:
+Funzione per trovare il processo proprietario della posizione libera: si basa sull'uso dei displacement che utilizzando un array corrispondono direttamente alle posizioni contenute da quel processo.
 ```c
  while (receive_size > 0 && uns > 0) {
                 int processo = -1;
