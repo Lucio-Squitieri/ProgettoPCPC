@@ -1,4 +1,4 @@
-#PCPC Project
+PCPC Project
 ===============
 Lucio Squitieri matricola 0522500984
 
@@ -42,19 +42,19 @@ Dopo ciò si esegue una scatter della matrice in cui tutti i processi riceverann
 Esempio: matrice 3x3 con 3 processi
 Matrice iniziale:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/matrice.PNG)
+![matrice](https://user-images.githubusercontent.com/55919285/122637657-38497a00-d0f0-11eb-8d08-d9c1b5e47eee.png)
 
 Matrice ricevuta dal Processo 1:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/processo1.PNG)
+![processo1](https://user-images.githubusercontent.com/55919285/122637660-3d0e2e00-d0f0-11eb-8558-e5123f4bb777.PNG)
 
 Matrice ricevuta dal Processo 2:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/processo2.PNG)
+![processo2](https://user-images.githubusercontent.com/55919285/122637665-413a4b80-d0f0-11eb-80e6-8c902ad4181b.PNG)
 
 Matrice ricevuta dal Processo 3:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/processo3.PNG)
+![processo3](https://user-images.githubusercontent.com/55919285/122637670-45feff80-d0f0-11eb-8e9c-3fe40c0de475.PNG)
 
 Si arriva ad un punto quindi in cui **ogni processo ha la sua sottomatrice utilizzabile senza altre informazioni necessarie per il calcolo della soddisfazione** e un array contente la posizione dei k posti liberi che può usare per spostare gli agenti.
 
@@ -489,11 +489,11 @@ Si arriva comunque a notare che alla fine delle iterazioni anche se non tutti gl
 
 Matrice iniziale:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/matrice%20iniziale.PNG)
+![matrice iniziale](https://user-images.githubusercontent.com/55919285/122637690-6333ce00-d0f0-11eb-8d9c-f009a0df703f.PNG)
 
-Matrice ricevuta dal Processo 1:
+Matrice finale ottenuta tramite gatherv:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/matrice%20finale.PNG)
+![matrice finale](https://user-images.githubusercontent.com/55919285/122637691-662ebe80-d0f0-11eb-8d68-64f865c21356.PNG)
 
 Notare che più grande la matrice più viene facile notare la creazione di questi gruppi.
 
@@ -528,16 +528,16 @@ Strong Scalability
 | Efficienza |100% | 64.9%| 26.7% | 18.5% | 10.9% | 5% | 4.2% |2.4% |1.7%
 
 Strong scalability:
-
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/strong%20scalability%201000.png)
+I valori nel grafico rappresentano il tempo, in secondi, passato per l'esecuzione del programma  
+![strong scalability 1000](https://user-images.githubusercontent.com/55919285/122637713-80689c80-d0f0-11eb-9a69-096e059bce37.png)
 
 Efficienza strong scalability:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/eff%201k.png)
+![eff 1k](https://user-images.githubusercontent.com/55919285/122637720-83fc2380-d0f0-11eb-8d1d-e23c27723f1b.png)
 
 Speedup:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/speed%201k.png)
+![speed 1k](https://user-images.githubusercontent.com/55919285/122637723-86f71400-d0f0-11eb-8139-57e23026b153.png)
 
 Matrice 2500x2500
 ===========
@@ -552,16 +552,16 @@ Strong Scalability
 | Efficienza |100% | 70.7%| 27.9% | 23.5% | 19.6% | 6.4% | 4.8% |3.8% |2.7%
 
 Strong scalability:
-
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/strong%20scalability%202500.png)
+I valori nel grafico rappresentano il tempo, in secondi, passato per l'esecuzione del programma  
+![strong scalability 2500](https://user-images.githubusercontent.com/55919285/122637731-8e1e2200-d0f0-11eb-8ed1-e009afaf23de.png)
 
 Efficienza strong scalability:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/eff%2025k.png)
+![eff 25k](https://user-images.githubusercontent.com/55919285/122637735-94ac9980-d0f0-11eb-9fd0-70fecf2c476f.png)
 
 Speedup:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/speed%2025k.png)
+![speed 25k](https://user-images.githubusercontent.com/55919285/122637737-98402080-d0f0-11eb-82d0-c449f2df1473.png)
 
 Matrice 5000x5000
 ===========
@@ -576,16 +576,16 @@ Strong Scalability
 | Efficienza |100% | 64.6%| 24.3% | 18% | 11.3% | 6.4% | 4.3% |3.3% |2.8%
 
 Strong scalability:
-
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/strong%20scalability%205000.png)
+I valori nel grafico rappresentano il tempo, in secondi, passato per l'esecuzione del programma  
+![strong scalability 5000](https://user-images.githubusercontent.com/55919285/122637756-abeb8700-d0f0-11eb-9dbe-43c71e85e2b7.png)
 
 Efficienza strong scalability:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/eff%205k.png)
+![eff 5k](https://user-images.githubusercontent.com/55919285/122637762-af7f0e00-d0f0-11eb-8d23-0da69bc063e7.png)
 
 Speedup:
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/speed%205k.png)
+![speed 5k](https://user-images.githubusercontent.com/55919285/122637765-b443c200-d0f0-11eb-9ce3-20b7cfec0447.png)
 
 Weak scalability
 ================
@@ -595,7 +595,8 @@ Strong Scalability
 | ----- | - | - | - | - | - | -- | -- | -- | -- |
 | Numero righe |1000 | 2000| 4000 | 6000 | 8000 | 10000| 12000 |14000 |16000
 
-![alt text](https://github.com/Lucio-Squitieri/ProgettoPCPC/blob/main/images/weak%20scalability.png)
+I valori nel grafico rappresentano il tempo, in secondi, passato per l'esecuzione del programma  
+![weak scalability](https://user-images.githubusercontent.com/55919285/122637752-a55d0f80-d0f0-11eb-9a24-a7b35da72667.png)
 
 Risultati
 ===========
